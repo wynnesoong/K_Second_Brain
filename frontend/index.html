@@ -45,6 +45,9 @@
                 <span class="font-semibold text-slate-800 dark:text-slate-100">Second Brain</span>
             </div>
             <nav class="flex-1 p-4 space-y-1">
+                <button @click="currentTab = 'home'; fetchDashboard()" :class="currentTab === 'home' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
+                    <span class="text-lg">🏠</span> 首頁
+                </button>
                 <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
                     <span class="text-lg">🔍</span> 搜尋
                 </button>
@@ -81,6 +84,174 @@
 
             <!-- Main content -->
             <main class="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+                <!-- Home Dashboard -->
+                <div v-if="currentTab === 'home'" class="max-w-5xl mx-auto space-y-8">
+                    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">總筆記數</p>
+                            <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ dashboardStats.total }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">今日新增</p>
+                            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ dashboardStats.today }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">本週新增</p>
+                            <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ dashboardStats.week }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">系統狀態</p>
+                            <p class="text-lg font-semibold" :class="healthInfo.status === 'healthy' ? 'text-emerald-600' : 'text-red-600'">{{ healthInfo.status === 'healthy' ? '正常' : '異常' }}</p>
+                            <p class="text-xs text-slate-500">{{ healthInfo.ai_provider || '-' }}</p>
+                        </div>
+                    </section>
+
+                    <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">快速動作</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">問答（依筆記回答）</label>
+                                <div class="flex gap-2">
+                                    <input v-model="askQuestion" @keyup.enter="performAsk" type="text" placeholder="輸入問題..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm">
+                                    <button @click="performAsk" :disabled="askLoading" class="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium">問</button>
+                                </div>
+                                <p v-if="askAnswer" class="mt-2 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">{{ askAnswer }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">存網址</label>
+                                <div class="flex gap-2">
+                                    <input v-model="quickUrl" type="url" placeholder="https://..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm">
+                                    <button @click="saveUrlFromDashboard" class="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium">存入</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">快速筆記</label>
+                                <div class="flex gap-2">
+                                    <input v-model="quickNoteText" @keyup.enter="saveQuickNote" type="text" placeholder="輸入文字..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm">
+                                    <button @click="saveQuickNote" class="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-medium">存</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">隨機一則</label>
+                                <button @click="openRandomNote" class="w-full px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">隨機開啟一則筆記</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📁 CRM 商機</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">檢視從 Slack 轉存的 Salesforce 商機</p>
+                            <button @click="currentTab='notes'; notesFolder='crm'; fetchNotes()" class="text-sm text-primary-600 dark:text-primary-400 font-medium">前往 CRM 筆記 →</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📤 匯出至 NotebookLM</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">將筆記同步到 Google Drive</p>
+                            <div class="flex gap-2">
+                                <input v-model="exportFilename" type="text" placeholder="檔名.md" class="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-700">
+                                <button @click="exportToDrive" class="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-sm">匯出</button>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📥 下載筆記 (Markdown)</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">輸入檔名下載為 .md 檔</p>
+                            <div class="flex gap-2">
+                                <input v-model="downloadFilename" type="text" placeholder="檔名.md" class="flex-1 px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-700">
+                                <button @click="downloadNoteAsMd" class="px-3 py-1.5 rounded-lg bg-slate-600 text-white text-sm">下載</button>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">🏷️ 標籤雲</h3>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="t in tagsList" :key="t.name" @click="searchByTag(t.name)" class="px-2 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs">{{ t.name }} ({{ t.count }})</button>
+                                <span v-if="tagsList.length === 0" class="text-sm text-slate-500">尚無標籤</span>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📋 複製 Vault 路徑</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">在 Obsidian 中開啟資料夾用</p>
+                            <button @click="copyVaultPath" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm">複製路徑</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📖 API 文件</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">Swagger 介面</p>
+                            <a :href="apiBase + '/docs'" target="_blank" rel="noopener" class="text-sm text-primary-600 dark:text-primary-400 font-medium">開啟 /docs →</a>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">💬 Slack 指令</h3>
+                            <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                                <li><code>/search 關鍵字</code> 搜尋筆記</li>
+                                <li><code>/ask 問題</code> AI 問答</li>
+                                <li>轉發訊息→ 存網址/筆記</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">⌨️ 快捷鍵</h3>
+                            <ul class="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                                <li>Enter 在搜尋/問答欄 = 送出</li>
+                                <li>點標籤 = 依標籤搜尋</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">🔄 重新整理儀表板</h3>
+                            <button @click="fetchDashboard" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm">重新載入數據</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📅 今日筆記</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">今天存入的筆記</p>
+                            <button @click="currentTab='notes'; notesFolder=null; notesPage=1; fetchNotes()" class="text-sm text-primary-600 dark:text-primary-400 font-medium">查看筆記列表 →</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📂 Inbox</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">未整理的收件匣</p>
+                            <button @click="currentTab='notes'; notesFolder='inbox'; fetchNotes()" class="text-sm text-primary-600 dark:text-primary-400 font-medium">前往 Inbox →</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">🔗 備份說明</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">筆記存於 obsidian_vault，直接複製該資料夾即可備份。</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">🩺 健康檢查詳情</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">狀態：{{ healthInfo && healthInfo.status ? healthInfo.status : '-' }}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">AI：{{ healthInfo && healthInfo.ai_provider ? healthInfo.ai_provider : '-' }}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 truncate mb-2" :title="healthInfo && healthInfo.vault_path">{{ healthInfo && healthInfo.vault_path ? healthInfo.vault_path : '-' }}</p>
+                            <button @click="copyVaultPath" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs">複製路徑</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">🕐 最近搜尋</h3>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button v-for="q in recentSearches" :key="q" @click="openRecentSearch(q)" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs truncate max-w-[120px]">{{ q }}</button>
+                                <span v-if="recentSearches.length === 0" class="text-xs text-slate-500">尚無紀錄</span>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">💬 Slack 狀態</h3>
+                            <p class="text-sm mb-2" :class="slackConfigured ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'">{{ slackConfigured ? '已設定' : '未設定' }}</p>
+                            <button @click="currentTab='settings'" class="text-xs text-primary-600 dark:text-primary-400 font-medium">前往設定 →</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">✅ 待辦摘要</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">搜尋筆記中的待辦相關內容</p>
+                            <button @click="openTodoSearch" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm">搜尋待辦筆記</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📄 最近筆記</h3>
+                            <ul class="space-y-1.5">
+                                <li v-for="n in dashboardNotes.slice(0, 5)" :key="n.file">
+                                    <button @click="viewNote(n.file); currentTab='notes'" class="text-left text-sm text-primary-600 dark:text-primary-400 truncate block w-full">{{ n.title || n.file }}</button>
+                                </li>
+                                <span v-if="dashboardNotes.length === 0" class="text-xs text-slate-500">尚無筆記</span>
+                            </ul>
+                            <button v-if="dashboardNotes.length > 0" @click="currentTab='notes'; fetchNotes()" class="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">查看全部 →</button>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">📂 在 Obsidian 中開啟</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">用 Obsidian 開啟 Vault</p>
+                            <button @click="openInObsidian" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-sm">開啟 Obsidian</button>
+                        </div>
+                    </section>
+                </div>
+
                 <!-- Search -->
                 <div v-if="currentTab === 'search'" class="max-w-3xl mx-auto space-y-6">
                     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
@@ -205,6 +376,9 @@
             <!-- Mobile Bottom Nav -->
             <nav class="fixed bottom-0 left-0 right-0 lg:hidden z-20 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 pb-safe">
                 <div class="flex justify-around items-center h-14">
+                    <button @click="currentTab = 'home'; fetchDashboard()" :class="currentTab === 'home' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
+                        <span class="text-xl">🏠</span><span>首頁</span>
+                    </button>
                     <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
                         <span class="text-xl">🔍</span><span>搜尋</span>
                     </button>
@@ -234,7 +408,7 @@
         createApp({
             data() {
                 return {
-                    currentTab: 'settings',
+                    currentTab: 'home',
                     loading: true,
                     saving: false,
                     settings: { ai_provider: 'gemini', ai_model_list: [] },
@@ -259,7 +433,20 @@
                     notesFolder: null,
                     selectedNote: null,
                     notification: { show: false, message: '', type: 'success' },
-                    apiBase: ''
+                    apiBase: '',
+                    // 首頁儀表板
+                    dashboardStats: { total: 0, today: 0, week: 0 },
+                    healthInfo: null,
+                    tagsList: [],
+                    askQuestion: '',
+                    askAnswer: '',
+                    askLoading: false,
+                    quickUrl: '',
+                    quickNoteText: '',
+                    exportFilename: '',
+                    downloadFilename: '',
+                    recentSearches: [],
+                    dashboardNotes: []
                 };
             },
             computed: {
@@ -267,13 +454,23 @@
                     return document.documentElement.classList.contains('dark');
                 },
                 tabTitle() {
+                    if (this.currentTab === 'home') return '首頁';
                     if (this.currentTab === 'search') return '知識庫搜尋';
                     if (this.currentTab === 'notes') return '筆記列表';
                     return '系統設定';
+                },
+                slackConfigured() {
+                    const t = this.settings.slack_bot_token;
+                    return !!(t && t.length > 0);
                 }
             },
             mounted() {
+                try {
+                    const saved = localStorage.getItem('second-brain-recent-searches');
+                    if (saved) this.recentSearches = JSON.parse(saved);
+                } catch (_) {}
                 this.fetchSettings();
+                if (this.currentTab === 'home') this.fetchDashboard();
             },
             methods: {
                 toggleTheme() {
@@ -308,13 +505,34 @@
                 },
                 async performSearch() {
                     if (!this.searchQuery.trim()) return;
+                    const q = this.searchQuery.trim();
                     try {
-                        const res = await axios.get(this.apiBase + '/search/', { params: { q: this.searchQuery } });
+                        const res = await axios.get(this.apiBase + '/search/', { params: { q } });
                         this.searchResults = res.data;
                         this.hasSearched = true;
+                        this.pushRecentSearch(q);
                     } catch (err) {
                         this.showNotification('搜尋失敗', 'error');
                     }
+                },
+                pushRecentSearch(q) {
+                    this.recentSearches = [q].concat(this.recentSearches.filter(x => x !== q)).slice(0, 10);
+                    try { localStorage.setItem('second-brain-recent-searches', JSON.stringify(this.recentSearches)); } catch (_) {}
+                },
+                openRecentSearch(q) {
+                    this.searchQuery = q;
+                    this.currentTab = 'search';
+                    this.performSearch();
+                },
+                openTodoSearch() {
+                    this.searchQuery = '待辦';
+                    this.currentTab = 'search';
+                    this.performSearch();
+                },
+                openInObsidian() {
+                    const path = (this.healthInfo && this.healthInfo.vault_path) ? this.healthInfo.vault_path : '';
+                    if (!path) { this.showNotification('無法取得 Vault 路徑', 'error'); return; }
+                    window.open('obsidian://open?path=' + encodeURIComponent(path), '_blank');
                 },
                 async fetchNotes() {
                     this.notesLoading = true;
@@ -339,6 +557,123 @@
                     } catch (err) {
                         this.showNotification('無法載入筆記', 'error');
                     }
+                },
+                async fetchDashboard() {
+                    if (!this.apiBase) return;
+                    try {
+                        const [notesRes, healthRes, tagsRes] = await Promise.all([
+                            axios.get(this.apiBase + '/notes', { params: { page: 1, limit: 50 } }),
+                            axios.get(this.apiBase + '/health').catch(() => ({ data: {} })),
+                            axios.get(this.apiBase + '/notes/tags/list').catch(() => ({ data: { tags: [] } }))
+                        ]);
+                        const notes = (notesRes.data.notes || []);
+                        const total = notesRes.data.total ?? notes.length;
+                        const now = new Date();
+                        const todayStr = now.toISOString().slice(0, 10);
+                        const weekAgo = new Date(now);
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        let today = 0, week = 0;
+                        for (const n of notes) {
+                            const d = n.date_saved || n.date_saved_parsed;
+                            if (d === todayStr) today++;
+                            if (d && new Date(d) >= weekAgo) week++;
+                        }
+                        this.dashboardStats = { total, today, week };
+                        this.healthInfo = healthRes.data;
+                        this.tagsList = (tagsRes.data.tags || []).slice(0, 50);
+                        this.dashboardNotes = notes.slice(0, 10);
+                    } catch (e) {
+                        this.dashboardStats = { total: 0, today: 0, week: 0 };
+                        this.healthInfo = null;
+                        this.tagsList = [];
+                        this.dashboardNotes = [];
+                    }
+                },
+                async performAsk() {
+                    if (!this.askQuestion.trim()) return;
+                    this.askLoading = true;
+                    this.askAnswer = '';
+                    try {
+                        const res = await axios.post(this.apiBase + '/search/ask', { query: this.askQuestion, history: [] });
+                        this.askAnswer = res.data.answer || '';
+                        if (!this.askAnswer) this.showNotification('沒有取得回答', 'error');
+                    } catch (err) {
+                        this.showNotification('問答失敗: ' + (err.message || '網路錯誤'), 'error');
+                    } finally {
+                        this.askLoading = false;
+                    }
+                },
+                async saveUrlFromDashboard() {
+                    if (!this.quickUrl.trim()) { this.showNotification('請輸入網址', 'error'); return; }
+                    try {
+                        await axios.post(this.apiBase + '/ingest/url', { url: this.quickUrl.trim() });
+                        this.showNotification('網址已存入');
+                        this.quickUrl = '';
+                        this.fetchDashboard();
+                    } catch (err) {
+                        this.showNotification('存入失敗: ' + (err.message || '網路錯誤'), 'error');
+                    }
+                },
+                async saveQuickNote() {
+                    if (!this.quickNoteText.trim()) { this.showNotification('請輸入內容', 'error'); return; }
+                    try {
+                        await axios.post(this.apiBase + '/ingest/text', { text: this.quickNoteText.trim() });
+                        this.showNotification('筆記已存入');
+                        this.quickNoteText = '';
+                        this.fetchDashboard();
+                    } catch (err) {
+                        this.showNotification('存入失敗: ' + (err.message || '網路錯誤'), 'error');
+                    }
+                },
+                async openRandomNote() {
+                    try {
+                        const res = await axios.get(this.apiBase + '/notes', { params: { page: 1, limit: 100 } });
+                        const notes = res.data.notes || [];
+                        if (notes.length === 0) { this.showNotification('尚無筆記', 'error'); return; }
+                        const one = notes[Math.floor(Math.random() * notes.length)];
+                        this.viewNote(one.file);
+                        this.currentTab = 'notes';
+                    } catch (err) {
+                        this.showNotification('無法取得隨機筆記', 'error');
+                    }
+                },
+                async exportToDrive() {
+                    const fn = (this.exportFilename || '').trim();
+                    if (!fn) { this.showNotification('請輸入檔名（如：2026-03-06_標題.md）', 'error'); return; }
+                    try {
+                        await axios.post(this.apiBase + '/export/drive/' + encodeURIComponent(fn));
+                        this.showNotification('已加入同步佇列');
+                        this.exportFilename = '';
+                    } catch (err) {
+                        this.showNotification('同步失敗: ' + (err.message || '網路錯誤'), 'error');
+                    }
+                },
+                async downloadNoteAsMd() {
+                    const fn = (this.downloadFilename || '').trim();
+                    if (!fn) { this.showNotification('請輸入檔名', 'error'); return; }
+                    try {
+                        const res = await axios.get(this.apiBase + '/notes/' + encodeURIComponent(fn));
+                        const blob = new Blob([res.data.content || res.data.raw || ''], { type: 'text/markdown' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = fn.endsWith('.md') ? fn : fn + '.md';
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                        this.showNotification('已下載');
+                        this.downloadFilename = '';
+                    } catch (err) {
+                        this.showNotification('下載失敗: ' + (err.message || '網路錯誤'), 'error');
+                    }
+                },
+                copyVaultPath() {
+                    const path = (this.healthInfo && this.healthInfo.vault_path) ? this.healthInfo.vault_path : '';
+                    if (!path) { this.showNotification('無法取得 Vault 路徑', 'error'); return; }
+                    navigator.clipboard.writeText(path).then(() => this.showNotification('已複製路徑')).catch(() => this.showNotification('複製失敗', 'error'));
+                },
+                searchByTag(tag) {
+                    this.searchQuery = tag;
+                    this.currentTab = 'search';
+                    this.performSearch();
                 },
                 showNotification(msg, type = 'success') {
                     this.notification = { show: true, message: msg, type };

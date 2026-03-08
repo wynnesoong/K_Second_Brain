@@ -114,3 +114,29 @@ class NotesService:
                     "content": content.strip(),
                 }
         return None
+
+    def get_tags(self) -> List[Dict[str, Any]]:
+        """掃描所有筆記的 frontmatter tags，回傳 { name, count } 列表。"""
+        from collections import Counter
+        counter: Counter = Counter()
+        for fold in self.folders:
+            dir_path = os.path.join(self.vault_path, fold)
+            if not os.path.isdir(dir_path):
+                continue
+            for name in os.listdir(dir_path):
+                if not name.endswith(".md"):
+                    continue
+                file_path = os.path.join(dir_path, name)
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        raw = f.read()
+                except Exception:
+                    continue
+                fm = _parse_frontmatter(raw)
+                tags = fm.get("tags", [])
+                if isinstance(tags, str):
+                    tags = [tags]
+                for t in tags:
+                    if t:
+                        counter[t] += 1
+        return [{"name": k, "count": v} for k, v in counter.most_common(50)]

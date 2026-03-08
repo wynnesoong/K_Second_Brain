@@ -17,6 +17,13 @@ async def list_notes(
     return service.list_notes(page=page, limit=limit, folder=folder, sort=sort)
 
 
+@router.get("/tags/list")
+async def list_tags():
+    """列出所有標籤及使用次數。"""
+    service = NotesService()
+    return {"tags": service.get_tags()}
+
+
 @router.get("/{filename}")
 async def get_note(filename: str):
     """取得單一筆記完整內容。"""
