@@ -1,0 +1,31 @@
+name: second-brain
+
+services:
+  backend:
+    build: .
+    container_name: second_brain_backend
+    volumes:
+      - .:/app
+      - ./obsidian_vault:/app/obsidian_vault
+      # Google Cloud Credentials (User needs to provide this file)
+      # - ./credentials.json:/app/credentials.json
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - OBSIDIAN_VAULT_PATH=/app/obsidian_vault
+    restart: unless-stopped
+
+  slack_bot:
+    build: .
+    container_name: second_brain_slack_bot
+    command: python slack_bot/app.py
+    volumes:
+      - .:/app
+      - ./obsidian_vault:/app/obsidian_vault
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: unless-stopped

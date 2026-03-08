@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Kevin's Second Brain</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 300:'#93c5fd', 400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af', 900:'#1e3a8a' },
+                        slate: { 850: '#172033', 950: '#0c1222' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+        html { font-family: 'Inter', system-ui, sans-serif; }
+        html.dark { color-scheme: dark; }
+        /* Safe area for iPhone notch/home */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
+        .pt-safe { padding-top: env(safe-area-inset-top, 0); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen antialiased">
+    <div id="app" v-cloak class="min-h-screen flex flex-col lg:flex-row">
+        <!-- Desktop Sidebar -->
+        <aside class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-sm z-30">
+            <div class="flex items-center gap-3 p-6 border-b border-slate-200 dark:border-slate-700">
+                <div class="w-10 h-10 rounded-xl bg-primary-600 dark:bg-primary-500 flex items-center justify-center text-white font-bold text-lg">K</div>
+                <span class="font-semibold text-slate-800 dark:text-slate-100">Second Brain</span>
+            </div>
+            <nav class="flex-1 p-4 space-y-1">
+                <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
+                    <span class="text-lg">🔍</span> 搜尋
+                </button>
+                <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
+                    <span class="text-lg">⚙️</span> 設定
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">主題</p>
+                <button @click="toggleTheme" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium" aria-label="切換日間/夜間模式">
+                    <span v-if="isDark">🌙</span><span v-else>☀️</span>
+                    <span>{{ isDark ? '夜間' : '日間' }}</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main: Top bar (mobile + desktop) -->
+        <div class="flex-1 flex flex-col lg:pl-64 min-h-screen">
+            <header class="sticky top-0 z-20 flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200 dark:border-slate-700 lg:px-8 pt-safe">
+                <div class="flex items-center gap-3 lg:hidden">
+                    <div class="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold">K</div>
+                    <span class="font-semibold text-slate-800 dark:text-slate-100">Second Brain</span>
+                </div>
+                <div class="hidden lg:block">
+                    <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{{ currentTab === 'search' ? '知識庫搜尋' : '系統設定' }}</h1>
+                </div>
+                <button @click="toggleTheme" class="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition" aria-label="切換日間/夜間模式">
+                    <span class="text-xl">{{ isDark ? '🌙' : '☀️' }}</span>
+                </button>
+            </header>
+
+            <!-- Main content -->
+            <main class="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+                <!-- Search -->
+                <div v-if="currentTab === 'search'" class="max-w-3xl mx-auto space-y-6">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">搜尋筆記</label>
+                        <div class="flex gap-2">
+                            <input v-model="searchQuery" @keyup.enter="performSearch" type="search" placeholder="輸入關鍵字..." class="flex-1 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <button @click="performSearch" class="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-medium transition shadow-sm">搜尋</button>
+                        </div>
+                    </div>
+                    <div v-if="searchResults.length > 0" class="space-y-4">
+                        <div v-for="result in searchResults" :key="result.path" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition">
+                            <h3 class="font-semibold text-slate-800 dark:text-slate-100 mb-2">{{ result.title }}</h3>
+                            <p class="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">{{ result.snippet }}</p>
+                            <div class="text-xs text-slate-400 dark:text-slate-500 truncate">{{ result.path }}</div>
+                        </div>
+                    </div>
+                    <div v-else-if="hasSearched" class="text-center py-12 text-slate-500 dark:text-slate-400">找不到相關筆記。</div>
+                </div>
+
+                <!-- Settings -->
+                <div v-if="currentTab === 'settings'" class="max-w-3xl mx-auto">
+                    <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+                        <div class="w-12 h-12 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="mt-4 text-slate-500 dark:text-slate-400">載入設定中...</p>
+                    </div>
+                    <form v-else @submit.prevent="saveSettings" class="space-y-8">
+                        <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                            <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">🤖 AI 模型</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">當前使用模型</label>
+                                    <select v-model="settings.ai_provider" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500">
+                                        <option v-for="model in settings.ai_model_list" :value="model">{{ model.toUpperCase() }}</option>
+                                    </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-500 mt-1">請在下方填寫對應 API Key</p>
+                                </div>
+                                <div v-for="(keyName, label) in apiFields" :key="keyName" class="grid grid-cols-1">
+                                    <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{{ label }}</label>
+                                    <input type="password" v-model="settings[keyName]" placeholder="選填" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-primary-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ollama Base URL</label>
+                                    <input type="text" v-model="settings.ollama_base_url" placeholder="http://host.docker.internal:11434" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500">
+                                </div>
+                            </div>
+                        </section>
+                        <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                            <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">🔌 整合設定</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Google NotebookLM 資料夾 ID</label>
+                                    <input type="text" v-model="settings.notebooklm_source_folder_id" placeholder="Google Drive Folder ID" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Slack Bot Token</label>
+                                        <input type="password" v-model="settings.slack_bot_token" placeholder="xoxb-..." class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Slack App Token</label>
+                                        <input type="password" v-model="settings.slack_app_token" placeholder="xapp-..." class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4">
+                            <p class="text-sm text-slate-500 dark:text-slate-400">設定會同步至後端並即時生效</p>
+                            <button type="submit" :disabled="saving" class="px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-medium shadow-sm inline-flex items-center justify-center gap-2">
+                                <span v-if="saving" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                {{ saving ? '儲存中...' : '儲存設定' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+
+            <!-- Mobile Bottom Nav -->
+            <nav class="fixed bottom-0 left-0 right-0 lg:hidden z-20 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 pb-safe">
+                <div class="flex justify-around items-center h-14">
+                    <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
+                        <span class="text-xl">🔍</span><span>搜尋</span>
+                    </button>
+                    <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
+                        <span class="text-xl">⚙️</span><span>設定</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Toast -->
+        <div v-if="notification.show" :class="['fixed bottom-20 lg:bottom-6 right-4 lg:right-6 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium z-50 transition', notification.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
+            {{ notification.message }}
+        </div>
+    </div>
+
+    <script>
+        (function applySavedTheme() {
+            const saved = localStorage.getItem('second-brain-theme');
+            if (saved === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+        })();
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    currentTab: 'settings',
+                    loading: true,
+                    saving: false,
+                    settings: { ai_provider: 'gemini', ai_model_list: [] },
+                    apiFields: {
+                        'Google Gemini': 'google_api_key',
+                        'OpenAI': 'openai_api_key',
+                        'Anthropic Claude': 'anthropic_api_key',
+                        'Moonshot (Kimi)': 'moonshot_api_key',
+                        'DashScope (Qwen)': 'dashscope_api_key',
+                        'DeepSeek': 'deepseek_api_key',
+                        'Mistral': 'mistral_api_key',
+                        'Groq': 'groq_api_key',
+                        'OpenRouter': 'openrouter_api_key',
+                    },
+                    searchQuery: '',
+                    searchResults: [],
+                    hasSearched: false,
+                    notification: { show: false, message: '', type: 'success' },
+                    apiBase: ''
+                };
+            },
+            computed: {
+                isDark() {
+                    return document.documentElement.classList.contains('dark');
+                }
+            },
+            mounted() {
+                this.fetchSettings();
+            },
+            methods: {
+                toggleTheme() {
+                    document.documentElement.classList.toggle('dark');
+                    localStorage.setItem('second-brain-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+                },
+                async fetchSettings() {
+                    try {
+                        const res = await axios.get(this.apiBase + '/settings/');
+                        this.settings = res.data;
+                    } catch (err) {
+                        this.showNotification('無法載入設定: ' + (err.message || '網路錯誤'), 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async saveSettings() {
+                    this.saving = true;
+                    try {
+                        const payload = {};
+                        for (const key in this.settings) {
+                            if (this.settings[key] !== '***' && key !== 'ai_model_list') payload[key] = this.settings[key];
+                        }
+                        await axios.post(this.apiBase + '/settings/', payload);
+                        this.showNotification('設定已儲存並同步');
+                        await this.fetchSettings();
+                    } catch (err) {
+                        this.showNotification('儲存失敗: ' + (err.message || '網路錯誤'), 'error');
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+                async performSearch() {
+                    if (!this.searchQuery.trim()) return;
+                    try {
+                        const res = await axios.get(this.apiBase + '/search/', { params: { q: this.searchQuery } });
+                        this.searchResults = res.data;
+                        this.hasSearched = true;
+                    } catch (err) {
+                        this.showNotification('搜尋失敗', 'error');
+                    }
+                },
+                showNotification(msg, type = 'success') {
+                    this.notification = { show: true, message: msg, type };
+                    setTimeout(() => { this.notification.show = false; }, 3000);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

@@ -326,7 +326,53 @@ GET /notes/2026-03-06_article-title.md
 
 ---
 
-## 五、錯誤碼一覽
+## 五、設定端點 (Web UI 專用)
+
+### GET /settings
+取得當前系統設定 (AI Provider, API Keys 遮罩後顯示)。
+
+**回應 (成功 200)：**
+```json
+{
+  "ai_provider": "gemini",
+  "ai_model_list": ["gemini", "openai", "ollama", "claude", "deepseek", "mistral", "groq", "openrouter", "kimi", "qwen"],
+  "api_keys": {
+    "google_api_key": "AIzaSyD...",
+    "openai_api_key": "sk-proj...",
+    "moonshot_api_key": null
+  },
+  "ollama_base_url": "http://host.docker.internal:11434"
+}
+```
+
+### POST /settings
+更新系統設定。系統會：
+1. 更新 SQLite 資料庫
+2. 同步寫入 `.env` 檔案
+3. 即時套用新設定
+
+**請求：**
+```json
+{
+  "ai_provider": "openai",
+  "google_api_key": "AIzaSyD...",
+  "openai_api_key": "sk-proj-new-key...",
+  "ollama_base_url": "http://host.docker.internal:11434"
+}
+```
+
+**回應 (成功 200)：**
+```json
+{
+  "status": "success",
+  "message": "Settings updated and reloaded",
+  "ai_provider": "openai"
+}
+```
+
+---
+
+## 六、錯誤碼一覽
 
 | HTTP 狀態碼 | 錯誤類型 | 說明 |
 |-------------|----------|------|
