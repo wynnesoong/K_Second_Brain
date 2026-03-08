@@ -49,6 +49,7 @@ async def ingest_url(request: IngestUrlRequest):
 async def ingest_text(request: IngestTextRequest):
     """
     處理純文字輸入，透過 AI 生成摘要，存入 Obsidian。
+    若帶 source_url（如 X 貼文網址）會寫入 frontmatter 並加標籤 XPost。
     """
     try:
         # AI Summary
@@ -58,6 +59,10 @@ async def ingest_text(request: IngestTextRequest):
         writer = ObsidianWriter()
         metadata = summary_data.copy()
         metadata["tags"] = summary_data.get("tags", []) + ["QuickNote"]
+        if request.source_url:
+            metadata["url"] = request.source_url
+            if "x.com" in request.source_url or "twitter.com" in request.source_url:
+                metadata["tags"] = summary_data.get("tags", []) + ["XPost", "QuickNote"]
         
         # Generate a title from summary first sentence or first 20 chars
         title = summary_data.get("summary", "")[:20] + "..." if summary_data.get("summary") else "Quick Note"

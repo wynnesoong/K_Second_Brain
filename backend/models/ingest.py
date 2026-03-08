@@ -6,6 +6,7 @@ class IngestUrlRequest(BaseModel):
 
 class IngestTextRequest(BaseModel):
     text: str
+    source_url: Optional[str] = None  # 選填，例如 X 貼文網址
 
 class IngestSalesforceRequest(BaseModel):
     message: str # Slack 轉發的原始訊息

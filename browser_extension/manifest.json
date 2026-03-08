@@ -5,7 +5,8 @@
   "description": "一鍵將當前網頁或選取文字存入第二大腦",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost:8000/*",
