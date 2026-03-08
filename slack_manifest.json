@@ -1,0 +1,71 @@
+{
+    "display_information": {
+        "name": "Kevin's Second Brain",
+        "description": "Personal Knowledge Management Assistant & CRM Integrator",
+        "background_color": "#2C3E50"
+    },
+    "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": true,
+            "messages_tab_read_only_enabled": false
+        },
+        "bot_user": {
+            "display_name": "Second Brain",
+            "always_online": true
+        },
+        "shortcuts": [
+            {
+                "name": "Save to Second Brain",
+                "type": "message",
+                "callback_id": "save_to_brain",
+                "description": "Save this message thread to Obsidian"
+            }
+        ],
+        "slash_commands": [
+            {
+                "command": "/search",
+                "description": "Search your knowledge base",
+                "usage_hint": "[keyword]",
+                "should_escape": false
+            },
+            {
+                "command": "/sync-sf",
+                "description": "Sync customer data from Salesforce",
+                "usage_hint": "[Customer Name]",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "app_mentions:read",
+                "channels:history",
+                "chat:write",
+                "commands",
+                "groups:history",
+                "im:history",
+                "im:write",
+                "mpim:history",
+                "users:read"
+            ]
+        }
+    },
+    "settings": {
+        "event_subscriptions": {
+            "bot_events": [
+                "app_home_opened",
+                "app_mention",
+                "message.channels",
+                "message.im"
+            ]
+        },
+        "interactivity": {
+            "is_enabled": true
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": true,
+        "token_rotation_enabled": false
+    }
+}
