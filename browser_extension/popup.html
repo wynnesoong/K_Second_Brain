@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second Brain</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <span class="logo">🧠</span>
+      <h1>Second Brain</h1>
+      <a href="#" id="optionsLink" class="options-link">設定</a>
+    </header>
+
+    <section class="section">
+      <label class="label">目前網頁</label>
+      <p id="currentUrl" class="url-text">讀取中…</p>
+      <button type="button" id="saveUrlBtn" class="btn btn-primary">存入此頁</button>
+    </section>
+
+    <section class="section">
+      <label class="label">快速筆記</label>
+      <textarea id="quickNote" class="textarea" placeholder="輸入或貼上文字，一鍵存入…" rows="3"></textarea>
+      <button type="button" id="saveTextBtn" class="btn btn-secondary">存入筆記</button>
+    </section>
+
+    <p id="message" class="message" aria-live="polite"></p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

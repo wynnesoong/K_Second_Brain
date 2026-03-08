@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 import os
 
-from backend.routers import ingest, search, export, settings as settings_router
+from backend.routers import ingest, search, export, settings as settings_router, notes as notes_router
 from backend.config import settings
 
 app = FastAPI(
@@ -27,6 +27,7 @@ app.include_router(ingest.router)
 app.include_router(search.router)
 app.include_router(export.router)
 app.include_router(settings_router.router)
+app.include_router(notes_router.router)
 
 # Serve Frontend
 # Mount frontend folder for potential JS/CSS assets

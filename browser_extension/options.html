@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second Brain 擴充功能設定</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body { width: 480px; min-height: 200px; }
+    .options-section { margin-bottom: 20px; }
+    .options-section input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+    .options-section input:focus { outline: none; border-color: #2563eb; }
+    .hint { font-size: 12px; color: #64748b; margin-top: 6px; }
+    .btn-save { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <span class="logo">🧠</span>
+      <h1>Second Brain 設定</h1>
+    </header>
+    <section class="options-section">
+      <label class="label">後端 API 網址</label>
+      <input type="url" id="apiBase" placeholder="http://localhost:8000">
+      <p class="hint">本機執行時填 http://localhost:8000；<strong>從 Mac 連到 Win11 後端</strong>請填 Win11 的 IP，例如 http://192.168.1.100:8000（需與後端同一網路，且 Win11 防火牆允許 8000 埠）。</p>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button type="button" id="saveOptions" class="btn btn-primary">儲存</button>
+        <button type="button" id="testConnection" class="btn btn-secondary">測試連線</button>
+      </div>
+    </section>
+    <p id="optionsMessage" class="message"></p>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

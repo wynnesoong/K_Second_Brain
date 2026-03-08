@@ -48,6 +48,9 @@
                 <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
                     <span class="text-lg">🔍</span> 搜尋
                 </button>
+                <button @click="currentTab = 'notes'; fetchNotes()" :class="currentTab === 'notes' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
+                    <span class="text-lg">📒</span> 筆記
+                </button>
                 <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left font-medium transition">
                     <span class="text-lg">⚙️</span> 設定
                 </button>
@@ -69,7 +72,7 @@
                     <span class="font-semibold text-slate-800 dark:text-slate-100">Second Brain</span>
                 </div>
                 <div class="hidden lg:block">
-                    <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{{ currentTab === 'search' ? '知識庫搜尋' : '系統設定' }}</h1>
+                    <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{{ tabTitle }}</h1>
                 </div>
                 <button @click="toggleTheme" class="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition" aria-label="切換日間/夜間模式">
                     <span class="text-xl">{{ isDark ? '🌙' : '☀️' }}</span>
@@ -95,6 +98,51 @@
                         </div>
                     </div>
                     <div v-else-if="hasSearched" class="text-center py-12 text-slate-500 dark:text-slate-400">找不到相關筆記。</div>
+                </div>
+
+                <!-- Notes list -->
+                <div v-if="currentTab === 'notes'" class="max-w-3xl mx-auto space-y-6">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">資料夾：</span>
+                            <button @click="notesFolder=null; fetchNotes()" :class="!notesFolder ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-slate-100 dark:bg-slate-700'" class="px-3 py-1.5 rounded-lg text-sm font-medium">全部</button>
+                            <button @click="notesFolder='inbox'; fetchNotes()" :class="notesFolder==='inbox' ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-slate-100 dark:bg-slate-700'" class="px-3 py-1.5 rounded-lg text-sm font-medium">Inbox</button>
+                            <button @click="notesFolder='notes'; fetchNotes()" :class="notesFolder==='notes' ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-slate-100 dark:bg-slate-700'" class="px-3 py-1.5 rounded-lg text-sm font-medium">Notes</button>
+                            <button @click="notesFolder='crm'; fetchNotes()" :class="notesFolder==='crm' ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300' : 'bg-slate-100 dark:bg-slate-700'" class="px-3 py-1.5 rounded-lg text-sm font-medium">CRM</button>
+                            <button @click="fetchNotes()" class="ml-auto px-3 py-1.5 rounded-lg text-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600">重新整理</button>
+                        </div>
+                    </div>
+                    <div v-if="notesLoading" class="flex justify-center py-12"><div class="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div></div>
+                    <div v-else-if="notesList.length > 0" class="space-y-4">
+                        <p class="text-sm text-slate-500 dark:text-slate-400">共 {{ notesTotal }} 筆</p>
+                        <div v-for="n in notesList" :key="n.file" @click="viewNote(n.file)" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition cursor-pointer">
+                            <div class="flex items-start justify-between gap-2">
+                                <h3 class="font-semibold text-slate-800 dark:text-slate-100">{{ n.title }}</h3>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500">{{ n.folder }}</span>
+                            </div>
+                            <p v-if="n.summary" class="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{{ n.summary }}</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <span class="text-xs text-slate-400">{{ n.date_saved }}</span>
+                                <span v-for="tag in (n.tags || []).slice(0,3)" :key="tag" class="text-xs px-2 py-0.5 rounded bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400">{{ tag }}</span>
+                            </div>
+                        </div>
+                        <div v-if="notesTotal > notesList.length" class="flex justify-center gap-2 pt-4">
+                            <button @click="notesPage--; fetchNotes()" :disabled="notesPage <= 1" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 disabled:opacity-50 text-sm font-medium">上一頁</button>
+                            <span class="py-2 text-sm text-slate-500">第 {{ notesPage }} 頁</span>
+                            <button @click="notesPage++; fetchNotes()" :disabled="notesPage * 20 >= notesTotal" class="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 disabled:opacity-50 text-sm font-medium">下一頁</button>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-12 text-slate-500 dark:text-slate-400">尚無筆記，從擴充功能或 Slack 存入後會顯示在這裡。</div>
+                    <!-- Single note modal -->
+                    <div v-if="selectedNote" @click.self="selectedNote = null" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/50">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+                            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <h2 class="font-semibold text-slate-800 dark:text-slate-100 truncate">{{ selectedNote.frontmatter && selectedNote.frontmatter.title ? selectedNote.frontmatter.title : selectedNote.file }}</h2>
+                                <button @click="selectedNote = null" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">✕</button>
+                            </div>
+                            <pre class="p-4 overflow-auto flex-1 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans">{{ selectedNote.content }}</pre>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Settings -->
@@ -160,6 +208,9 @@
                     <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
                         <span class="text-xl">🔍</span><span>搜尋</span>
                     </button>
+                    <button @click="currentTab = 'notes'; fetchNotes()" :class="currentTab === 'notes' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
+                        <span class="text-xl">📒</span><span>筆記</span>
+                    </button>
                     <button @click="currentTab = 'settings'" :class="currentTab === 'settings' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'" class="flex flex-col items-center justify-center flex-1 py-2 gap-0.5 font-medium text-sm">
                         <span class="text-xl">⚙️</span><span>設定</span>
                     </button>
@@ -201,6 +252,12 @@
                     searchQuery: '',
                     searchResults: [],
                     hasSearched: false,
+                    notesList: [],
+                    notesLoading: false,
+                    notesPage: 1,
+                    notesTotal: 0,
+                    notesFolder: null,
+                    selectedNote: null,
                     notification: { show: false, message: '', type: 'success' },
                     apiBase: ''
                 };
@@ -208,6 +265,11 @@
             computed: {
                 isDark() {
                     return document.documentElement.classList.contains('dark');
+                },
+                tabTitle() {
+                    if (this.currentTab === 'search') return '知識庫搜尋';
+                    if (this.currentTab === 'notes') return '筆記列表';
+                    return '系統設定';
                 }
             },
             mounted() {
@@ -252,6 +314,30 @@
                         this.hasSearched = true;
                     } catch (err) {
                         this.showNotification('搜尋失敗', 'error');
+                    }
+                },
+                async fetchNotes() {
+                    this.notesLoading = true;
+                    try {
+                        const params = { page: this.notesPage, limit: 20 };
+                        if (this.notesFolder) params.folder = this.notesFolder;
+                        const res = await axios.get(this.apiBase + '/notes', { params });
+                        this.notesList = res.data.notes || [];
+                        this.notesTotal = res.data.total || 0;
+                    } catch (err) {
+                        this.notesList = [];
+                        this.notesTotal = 0;
+                        this.showNotification('無法載入筆記列表', 'error');
+                    } finally {
+                        this.notesLoading = false;
+                    }
+                },
+                async viewNote(filename) {
+                    try {
+                        const res = await axios.get(this.apiBase + '/notes/' + encodeURIComponent(filename));
+                        this.selectedNote = res.data;
+                    } catch (err) {
+                        this.showNotification('無法載入筆記', 'error');
                     }
                 },
                 showNotification(msg, type = 'success') {
